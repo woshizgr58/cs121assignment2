@@ -1,21 +1,37 @@
 import re
+from bs4 import BeautifulSoup
 from urllib.parse import urlparse
+from urllib.parse import urljoin, urldef
 
 def scraper(url, resp):
     links = extract_next_links(url, resp)
     return [link for link in links if is_valid(link)]
 
 def extract_next_links(url, resp):
-    # Implementation required.
-    # url: the URL that was used to get the page
-    # resp.url: the actual url of the page
-    # resp.status: the status code returned by the server. 200 is OK, you got the page. Other numbers mean that there was some kind of problem.
-    # resp.error: when status is not 200, you can check the error here, if needed.
-    # resp.raw_response: this is where the page actually is. More specifically, the raw_response has two parts:
-    #         resp.raw_response.url: the url, again
-    #         resp.raw_response.content: the content of the page!
-    # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
-    return list()
+    
+    # Base case
+    if resp.error or res.raw_response == [] or not resp or resp.status != 200:
+        return []
+    
+    # Parse
+    links = []
+    soup = BeautifulSoup(res.raw_response.content, "html.parser")
+    base_url = resp.url if getattr(resp, "url", None) else url
+    for a in soup.find_all("a", href = True):
+        href = a.get("href")
+        if not href: 
+            continue
+        if href.startswith(("javascript:", "mailto:", "tel:")): # skip useless
+            continue
+    
+        full_url = urljoin(base_url, href) # get full url (base + /.....)
+        
+        full_url, _ = urldefrag(full_url) # clean url
+        
+        links.append(full_url)
+
+    
+    return links
 
 def is_valid(url):
     # Decide whether to crawl this url or not. 

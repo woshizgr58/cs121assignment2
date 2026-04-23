@@ -113,5 +113,4 @@ venv.bak/
 Logs/
 frontier.shelve*
 
-# Local assistant/session metadata
-.codex
+
