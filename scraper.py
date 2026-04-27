@@ -10,7 +10,7 @@ def scraper(url, resp):
 def extract_next_links(url, resp):
     
     # Base case
-    if resp.error or res.raw_response == [] or not resp or resp.status != 200:
+    if resp.error or resp.raw_response is None or not resp or resp.status != 200:
         return []
     
     # Parse
@@ -34,23 +34,43 @@ def extract_next_links(url, resp):
     return links
 
 def is_valid(url):
-    # Decide whether to crawl this url or not. 
-    # If you decide to crawl it, return True; otherwise return False.
-    # There are already some conditions that return False.
     try:
         parsed = urlparse(url)
-        if parsed.scheme not in set(["http", "https"]):
+
+        if parsed.scheme not in {"http", "https"}:
             return False
-        return not re.match(
-            r".*\.(css|js|bmp|gif|jpe?g|ico"
-            + r"|png|tiff?|mid|mp2|mp3|mp4"
-            + r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf"
-            + r"|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names"
-            + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
-            + r"|epub|dll|cnf|tgz|sha1"
-            + r"|thmx|mso|arff|rtf|jar|csv"
-            + r"|rm|smil|wmv|swf|wma|zip|rar|gz)$", parsed.path.lower())
+
+        # Only allow these domains
+        allowed_domains = [
+            "ics.uci.edu",
+            "cs.uci.edu",
+            "informatics.uci.edu",
+            "stat.uci.edu",
+        ]
+        hostname = parsed.hostname or ""
+        if not any(hostname == d or hostname.endswith("." + d) for d in allowed_domains):
+            return False
+
+        # Detect and avoid traps: repeated path segments
+        path = parsed.path
+        path_parts = [p for p in path.split("/") if p]
+        if len(path_parts) != len(set(path_parts)):
+            return False  # repeated segment = likely trap
+
+        # Avoid very long URLs (often traps)
+        # if len(url) > 200:
+        #     return False
+
+        # Filter out non-webpage file types
+        return not re.search(
+            r"\.(css|js|bmp|gif|jpe?g|ico|png|tiff?|mid|mp2|mp3|mp4"
+            r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf|ps|eps|tex"
+            r"|ppt|pptx|doc|docx|xls|xlsx|names|data|dat|exe|bz2|tar"
+            r"|msi|bin|7z|psd|dmg|iso|epub|dll|cnf|tgz|sha1|thmx"
+            r"|mso|arff|rtf|jar|csv|rm|smil|wmv|swf|wma|zip|rar|gz)$",
+            parsed.path.lower(),
+        )
 
     except TypeError:
-        print ("TypeError for ", parsed)
-        raise
+        return False
+
