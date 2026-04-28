@@ -1,7 +1,7 @@
 import re
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
-from urllib.parse import urljoin, urldef
+from urllib.parse import urljoin, urldefrag
 
 def scraper(url, resp):
     links = extract_next_links(url, resp)
@@ -10,12 +10,12 @@ def scraper(url, resp):
 def extract_next_links(url, resp):
     
     # Base case
-    if resp.error or resp.raw_response is None or not resp or resp.status != 200:
+    if not resp or resp.error or resp.raw_response is None or resp.status != 200:
         return []
     
     # Parse
     links = []
-    soup = BeautifulSoup(res.raw_response.content, "html.parser")
+    soup = BeautifulSoup(resp.raw_response.content, "html.parser")
     base_url = resp.url if getattr(resp, "url", None) else url
     for a in soup.find_all("a", href = True):
         href = a.get("href")
