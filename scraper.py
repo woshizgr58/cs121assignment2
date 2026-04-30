@@ -1,6 +1,6 @@
 import re
 from bs4 import BeautifulSoup
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 from urllib.parse import urljoin, urldefrag
 
 def scraper(url, resp):
@@ -57,9 +57,50 @@ def is_valid(url):
         if len(path_parts) != len(set(path_parts)):
             return False  # repeated segment = likely trap
 
-        # Avoid very long URLs (often traps)
-        # if len(url) > 200:
-        #     return False
+        # Avoid very long/generated URLs.
+        if len(url) > 250:
+            return False
+
+        query = parse_qs(parsed.query, keep_blank_values=True)
+        blocked_query_keys = {
+            "do",
+            "idx",
+            "image",
+            "mediado",
+            "ns",
+            "rev",
+            "rev2[0]",
+            "rev2[1]",
+            "tab_details",
+            "tab_files",
+        }
+        if any(key in query for key in blocked_query_keys):
+            return False
+
+        blocked_query_prefixes = (
+            "filter[",
+            "tribe_",
+        )
+        if any(key.startswith(blocked_query_prefixes) for key in query):
+            return False
+
+        blocked_query_values = (
+            "facebook.com/share_channel",
+            "eventDisplay=day",
+            "ical=1",
+            "outlook-ical=1",
+        )
+        if any(value in parsed.query for value in blocked_query_values):
+            return False
+        if any(
+            "facebook.com/share_channel" in value
+            for values in query.values()
+            for value in values
+        ):
+            return False
+
+        if "/doku.php/" in parsed.path and parsed.query:
+            return False
 
         # Filter out non-webpage file types
         return not re.search(
