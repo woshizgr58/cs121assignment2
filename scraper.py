@@ -12,6 +12,12 @@ def extract_next_links(url, resp):
     # Base case
     if not resp or resp.error or resp.raw_response is None or resp.status != 200:
         return []
+
+    content_type = resp.raw_response.headers.get("content-type", "").lower()
+    if content_type and not (
+        "text/html" in content_type or "application/xhtml+xml" in content_type
+    ):
+        return []
     
     # Parse
     links = []
@@ -121,7 +127,7 @@ def is_valid(url):
         return not re.search(
             r"\.(css|js|bmp|gif|jpe?g|ico|png|tiff?|mid|mp2|mp3|mp4"
             r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf|ps|eps|tex"
-            r"|ppt|pptx|doc|docx|xls|xlsx|names|data|dat|exe|bz2|tar"
+            r"|ppt|pptx|pps|ppsx|doc|docx|xls|xlsx|names|data|dat|exe|bz2|tar"
             r"|msi|bin|7z|psd|dmg|iso|epub|dll|cnf|tgz|sha1|thmx"
             r"|mso|arff|rtf|jar|csv|rm|smil|wmv|swf|wma|zip|rar|gz)$",
             parsed.path.lower(),
