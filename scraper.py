@@ -53,9 +53,20 @@ def is_valid(url):
 
         # Detect and avoid traps: repeated path segments
         path = parsed.path
+        path_lower = path.lower()
         path_parts = [p for p in path.split("/") if p]
         if len(path_parts) != len(set(path_parts)):
             return False  # repeated segment = likely trap
+
+        # The Events Calendar archive views generate unbounded date/list pages.
+        if (
+            "/events/list" in path_lower
+            or "/events/month" in path_lower
+            or "/events/category/" in path_lower
+            or "/events/tag/" in path_lower
+            or re.search(r"/events/\d{4}-\d{2}(?:-\d{2})?/?$", path_lower)
+        ):
+            return False
 
         # Avoid very long/generated URLs.
         if len(url) > 250:
@@ -64,10 +75,13 @@ def is_valid(url):
         query = parse_qs(parsed.query, keep_blank_values=True)
         blocked_query_keys = {
             "do",
+            "eventDisplay",
+            "ical",
             "idx",
             "image",
             "mediado",
             "ns",
+            "outlook-ical",
             "rev",
             "rev2[0]",
             "rev2[1]",
@@ -79,6 +93,7 @@ def is_valid(url):
 
         blocked_query_prefixes = (
             "filter[",
+            "tribe-",
             "tribe_",
         )
         if any(key.startswith(blocked_query_prefixes) for key in query):
