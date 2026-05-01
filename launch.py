@@ -1,8 +1,10 @@
 from configparser import ConfigParser
 from argparse import ArgumentParser
+import os
 
 from utils.server_registration import get_cache_server
 from utils.config import Config
+from utils.analytics import reset_analytics
 from crawler import Crawler
 
 
@@ -10,7 +12,10 @@ def main(config_file, restart):
     cparser = ConfigParser()
     cparser.read(config_file)
     config = Config(cparser)
+    fresh = restart or not os.path.exists(config.save_file)
     config.cache_server = get_cache_server(config, restart)
+    if fresh:
+        reset_analytics()
     crawler = Crawler(config, restart)
     crawler.start()
 

@@ -2,6 +2,7 @@ import re
 from bs4 import BeautifulSoup
 from urllib.parse import parse_qs, urlparse
 from urllib.parse import urljoin, urldefrag
+from utils.analytics import record_page
 
 def scraper(url, resp):
     links = extract_next_links(url, resp)
@@ -23,6 +24,11 @@ def extract_next_links(url, resp):
     links = []
     soup = BeautifulSoup(resp.raw_response.content, "html.parser")
     base_url = resp.url if getattr(resp, "url", None) else url
+    try:
+        record_page(base_url, soup)
+    except Exception as exc:
+        print(f"Analytics error for {base_url}: {exc}", flush=True)
+
     for a in soup.find_all("a", href = True):
         href = a.get("href")
         if not href: 
