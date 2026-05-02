@@ -32,6 +32,8 @@ def print_report():
             """
             SELECT subdomain, COUNT(*)
             FROM pages
+            WHERE subdomain = 'ics.uci.edu'
+               OR subdomain LIKE '%.ics.uci.edu'
             GROUP BY subdomain
             ORDER BY subdomain ASC
             """
@@ -47,6 +49,7 @@ def print_report():
     for word, count in top_words:
         print(f"{word}, {count}")
 
+    print(f"\nSubdomain count: {len(subdomains)}")
     print("\nSubdomains:")
     for subdomain, count in subdomains:
         print(f"{subdomain}, {count}")

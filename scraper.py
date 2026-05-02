@@ -52,15 +52,8 @@ def is_valid(url):
         if parsed.scheme not in {"http", "https"}:
             return False
 
-        # Only allow these domains
-        allowed_domains = [
-            "ics.uci.edu",
-            "cs.uci.edu",
-            "informatics.uci.edu",
-            "stat.uci.edu",
-        ]
         hostname = parsed.hostname or ""
-        if not any(hostname == d or hostname.endswith("." + d) for d in allowed_domains):
+        if hostname != "ics.uci.edu" and not hostname.endswith(".ics.uci.edu"):
             return False
 
         # Detect and avoid traps: repeated path segments
@@ -78,6 +71,13 @@ def is_valid(url):
             or "/events/tag/" in path_lower
             or re.search(r"/events/\d{4}-\d{2}(?:-\d{2})?/?$", path_lower)
         ):
+            return False
+
+        archive_page = re.search(
+            r"/(?:blog|author/[^/]+|category/[^/]+|tag/[^/]+|[^/]+)/page/(\d+)/?$",
+            path_lower,
+        )
+        if archive_page and int(archive_page.group(1)) > 10:
             return False
 
         if re.search(r"/files/zimage", path_lower):
