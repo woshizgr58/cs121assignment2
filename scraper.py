@@ -24,10 +24,11 @@ def extract_next_links(url, resp):
     links = []
     soup = BeautifulSoup(resp.raw_response.content, "html.parser")
     base_url = resp.url if getattr(resp, "url", None) else url
-    try:
-        record_page(base_url, soup, resp.raw_response.content)
-    except Exception as exc:
-        print(f"Analytics error for {base_url}: {exc}", flush=True)
+    if is_valid(base_url):
+        try:
+            record_page(base_url, soup, resp.raw_response.content)
+        except Exception as exc:
+            print(f"Analytics error for {base_url}: {exc}", flush=True)
 
     for a in soup.find_all("a", href = True):
         href = a.get("href")
@@ -55,6 +56,8 @@ def is_valid(url):
         hostname = parsed.hostname or ""
         if hostname != "ics.uci.edu" and not hostname.endswith(".ics.uci.edu"):
             return False
+        if hostname in {"gitlab.ics.uci.edu", "grape.ics.uci.edu"}:
+            return False
 
         # Detect and avoid traps: repeated path segments
         path = parsed.path
@@ -65,12 +68,23 @@ def is_valid(url):
 
         # The Events Calendar archive views generate unbounded date/list pages.
         if (
-            "/events/list" in path_lower
+            "/events/" in path_lower
+            or path_lower.endswith("/events")
+            or "/events/list" in path_lower
             or "/events/month" in path_lower
             or "/events/category/" in path_lower
             or "/events/tag/" in path_lower
             or re.search(r"/events/\d{4}-\d{2}(?:-\d{2})?/?$", path_lower)
         ):
+            return False
+
+        if "/doku.php" in path_lower:
+            return False
+
+        if "/~eppstein/pix" in path_lower or "/%7eeppstein/pix" in path_lower:
+            return False
+
+        if hostname == "fano.ics.uci.edu" and path_lower.startswith("/ca/rules/"):
             return False
 
         archive_page = re.search(
@@ -83,11 +97,15 @@ def is_valid(url):
         if re.search(r"/files/zimage", path_lower):
             return False
 
+        if "/lib/exe/" in path_lower:
+            return False
+
         # Avoid very long/generated URLs.
         if len(url) > 250:
             return False
 
         query = parse_qs(parsed.query, keep_blank_values=True)
+
         blocked_query_keys = {
             "do",
             "eventDisplay",
@@ -136,9 +154,6 @@ def is_valid(url):
         ):
             return False
 
-        if "/doku.php/" in parsed.path and parsed.query:
-            return False
-
         # Filter out non-webpage file types
         return not re.search(
             r"\.(css|js|bmp|gif|jpe?g|ico|png|tiff?|mid|mp2|mp3|mp4"
@@ -149,6 +164,6 @@ def is_valid(url):
             parsed.path.lower(),
         )
 
-    except TypeError:
+    except (TypeError, ValueError):
         return False
 
