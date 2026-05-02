@@ -25,7 +25,7 @@ def extract_next_links(url, resp):
     soup = BeautifulSoup(resp.raw_response.content, "html.parser")
     base_url = resp.url if getattr(resp, "url", None) else url
     try:
-        record_page(base_url, soup)
+        record_page(base_url, soup, resp.raw_response.content)
     except Exception as exc:
         print(f"Analytics error for {base_url}: {exc}", flush=True)
 
@@ -80,6 +80,9 @@ def is_valid(url):
         ):
             return False
 
+        if re.search(r"/files/zimage", path_lower):
+            return False
+
         # Avoid very long/generated URLs.
         if len(url) > 250:
             return False
@@ -103,11 +106,18 @@ def is_valid(url):
         if any(key in query for key in blocked_query_keys):
             return False
 
+        # Department seed pages link to finite people directories with
+        # filter[units]. Keep those, but avoid broader faceted-search traps.
+        allowed_filter_keys = {"filter[units]"}
         blocked_query_prefixes = (
-            "filter[",
             "tribe-",
             "tribe_",
         )
+        if any(
+            key.startswith("filter[") and key not in allowed_filter_keys
+            for key in query
+        ):
+            return False
         if any(key.startswith(blocked_query_prefixes) for key in query):
             return False
 

@@ -79,6 +79,30 @@ def _canonical_url(url):
     return urldefrag(url)[0]
 
 
+def _is_countable_html(soup, raw_content=None):
+    if soup.find("html") is None or soup.find("body") is None:
+        return False
+
+    if raw_content:
+        # Some cached pages claim text/html but are Word/Office exports or
+        # UTF-16-ish blobs. BeautifulSoup can recover text from them, but they
+        # are not useful HTML pages for assignment statistics.
+        nul_ratio = raw_content.count(b"\x00") / len(raw_content)
+        if nul_ratio > 0.05:
+            return False
+
+        head = raw_content[:4096].lower()
+        office_markers = (
+            b"urn:schemas-microsoft-com:office",
+            b"mso-",
+            b"generator\" content=\"microsoft",
+        )
+        if any(marker in head for marker in office_markers):
+            return False
+
+    return True
+
+
 def _visible_text(soup):
     for tag in soup(["script", "style", "noscript"]):
         tag.decompose()
@@ -90,10 +114,16 @@ def _page_words(text):
 
 
 def _report_words(words):
-    return Counter(word for word in words if word not in STOP_WORDS)
+    return Counter(
+        word for word in words
+        if len(word) > 1 and word not in STOP_WORDS
+    )
 
 
-def record_page(url, soup):
+def record_page(url, soup, raw_content=None):
+    if not _is_countable_html(soup, raw_content):
+        return
+
     canonical_url = _canonical_url(url)
     subdomain = (urlparse(canonical_url).hostname or "").lower()
     words = _page_words(_visible_text(soup))

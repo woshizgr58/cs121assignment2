@@ -33,6 +33,9 @@ class Frontier(object):
         if restart:
             for url in self.config.seed_urls:
                 self.add_url(url)
+            self.logger.info(
+                f"Found {len(self.to_be_downloaded)} urls to be downloaded "
+                f"from {len(self.save)} total urls discovered.")
         else:
             # Set the frontier state with contents of save file.
             self._parse_save_file()
