@@ -59,7 +59,7 @@ def is_valid(url):
         if hostname in {"gitlab.ics.uci.edu", "grape.ics.uci.edu"}:
             return False
 
-        # Detect and avoid traps: repeated path segments
+        # Avoid repeated path segments.
         path = parsed.path
         path_lower = path.lower()
         path_parts = [p for p in path.split("/") if p]
@@ -124,8 +124,7 @@ def is_valid(url):
         if any(key in query for key in blocked_query_keys):
             return False
 
-        # Department seed pages link to finite people directories with
-        # filter[units]. Keep those, but avoid broader faceted-search traps.
+        # Department seed pages link to finite people directories with filter[units]
         allowed_filter_keys = {"filter[units]"}
         blocked_query_prefixes = (
             "tribe-",
