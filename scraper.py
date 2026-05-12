@@ -10,28 +10,35 @@ def scraper(url, resp):
 
 def extract_next_links(url, resp):
     
-    # Base case
+    # check if page load correctly
     if not resp or resp.error or resp.raw_response is None or resp.status != 200:
         return []
 
-    content_type = resp.raw_response.headers.get("content-type", "").lower()
+    # only parse html pages
+    content_type = resp.raw_response.headers.get("content-type", "").lower() # get the content type
     if content_type and not (
-        "text/html" in content_type or "application/xhtml+xml" in content_type
-    ):
+        "text/html" in content_type or "application/xhtml+xml" in content_type 
+    ): # make sure only html or xhtml pages
         return []
     
     # Parse
-    links = []
-    soup = BeautifulSoup(resp.raw_response.content, "html.parser")
-    base_url = resp.url if getattr(resp, "url", None) else url
+    links = [] # store the links we find
+    soup = BeautifulSoup(resp.raw_response.content, "html.parser") # parse as html
+
+    base_url = resp.url if getattr(resp, "url", None) else url # Use the final response url as the base for relative links 
+
+    # Save info for report
     if is_valid(base_url):
         try:
             record_page(base_url, soup, resp.raw_response.content)
         except Exception as exc:
             print(f"Analytics error for {base_url}: {exc}", flush=True)
 
-    for a in soup.find_all("a", href = True):
-        href = a.get("href")
+
+    for a in soup.find_all("a", href = True): # <a> tag  
+        href = a.get("href") # get anchor tag 
+
+        # Don't crawl
         if not href: 
             continue
         if href.startswith(("javascript:", "mailto:", "tel:")): # skip useless
@@ -39,12 +46,13 @@ def extract_next_links(url, resp):
     
         full_url = urljoin(base_url, href) # get full url (base + /.....)
         
-        full_url, _ = urldefrag(full_url) # clean url
+        full_url, _ = urldefrag(full_url) # remove anyting after #
         
         links.append(full_url)
 
     
     return links
+
 
 def is_valid(url):
     try:
